@@ -153,8 +153,9 @@ input[type="color"] { width: 30px; height: 26px; padding: 2px; border: 1px solid
 .swatches button { flex: 0 0 19px; height: 19px; border: 1px solid var(--swatch-line); border-radius: 4px; padding: 0; }
 .swatches button[aria-pressed="true"] { outline: 2px solid var(--swatch-selected); outline-offset: 1px; }
 .swatches button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.rotation { display: grid; grid-template-columns: 64px 1fr 51px; align-items: center; gap: 8px; margin-bottom: 11px; }
-.rotation output { text-align: right; font: .79rem ui-monospace, monospace; }
+.range-setting { display: grid; grid-template-columns: 64px minmax(0, 1fr) 51px; align-items: center; gap: 8px; margin-bottom: 11px; }
+.range-setting output { text-align: right; font: .79rem ui-monospace, monospace; }
+.preview-margin { margin-inline: 2px; }
 .stamps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; margin: 4px 0 0; }
 .stamps button { min-height: 43px; border: 1px solid var(--control-border); border-radius: 6px; background: var(--field); padding: 3px 1px; color: var(--stamp-text); font-size: .72rem; font-weight: 700; }
 .stamps button:first-child { color: var(--label); }
@@ -219,10 +220,15 @@ details pre { white-space: pre-wrap; overflow-wrap: anywhere; }
   <section class="preview-card" aria-labelledby="preview-title">
     <div class="preview-heading">
       <h2 id="preview-title">プレビュー</h2>
-      <span class="dimensions">1016 × 900 px</span>
+      <span class="dimensions">1016 × 1016 px</span>
+    </div>
+    <div class="range-setting preview-margin">
+      <label class="caption" for="margin">円の余白</label>
+      <input id="margin" form="editor" type="range" min="6" max="35" value="12" aria-valuetext="12%">
+      <output id="margin-value" for="margin">12%</output>
     </div>
     <div class="stage">
-      <canvas id="logo" width="1016" height="900" role="img" aria-label="ロゴのプレビュー">ロゴの表示にはCanvas対応ブラウザが必要です。</canvas>
+      <canvas id="logo" width="1016" height="1016" role="img" aria-label="ロゴのプレビュー">ロゴの表示にはCanvas対応ブラウザが必要です。</canvas>
     </div>
     <div class="preview-footer">
       <p id="status" class="status" role="status"></p>
@@ -295,7 +301,7 @@ details pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 
     <fieldset aria-labelledby="decoration-title">
       <h2 id="decoration-title">回転と飾り印</h2>
-      <div class="rotation">
+      <div class="range-setting">
         <label class="caption" for="rotation">回転角度</label>
         <input id="rotation" type="range" min="-180" max="180" value="0">
         <output id="angle" for="rotation">0°</output>
@@ -703,6 +709,7 @@ for (const choice of [byId("theme-light"), byId("theme-dark")]) {
   });
 }
 const editor = byId("editor");
+const marginInput = byId("margin");
 const canvas = byId("logo");
 const ctx = canvas.getContext("2d");
 const save = byId("save");
@@ -825,30 +832,33 @@ function fillCircle(x, y, radius, fill) {
   ctx.fill();
 }
 
+const circleCenter = 224;
+const circleRadius = 193;
+
 function drawDisc() {
-  const x = 224;
-  const y = 224;
+  const x = circleCenter;
+  const y = circleCenter;
   const halo = ctx.createRadialGradient(x, y, 189, x, y, 216);
   halo.addColorStop(0, "#fff");
   halo.addColorStop(.31, "#fff");
   halo.addColorStop(1, "#fff0");
   fillCircle(x, y, 216, halo);
 
-  const blue = ctx.createRadialGradient(x, y, 175, x, y, 193);
+  const blue = ctx.createRadialGradient(x, y, 175, x, y, circleRadius);
   blue.addColorStop(0, circleColor.value);
   blue.addColorStop(.45, circleColor.value + "e8");
   blue.addColorStop(1, circleColor.value + "00");
-  fillCircle(x, y, 193, blue);
+  fillCircle(x, y, circleRadius, blue);
 }
 
 function drawMainText(rotation) {
   ctx.save();
   ctx.beginPath();
-  ctx.arc(224, 224, 201, 0, 2 * Math.PI);
+  ctx.arc(circleCenter, circleCenter, 201, 0, 2 * Math.PI);
   ctx.clip();
-  ctx.translate(224, 224);
+  ctx.translate(circleCenter, circleCenter);
   ctx.rotate(radians(rotation));
-  ctx.translate(-224, -224);
+  ctx.translate(-circleCenter, -circleCenter);
 
   const title = { size: 130, family: gothic, color: "#fff", width: 254, tracking: -10,
     angle: -12.35, stretch: 1.32, height: 1.27 };
@@ -921,13 +931,30 @@ function drawStamp() {
 
 function render() {
   const rotation = Number(byId("rotation").value);
-  ctx.setTransform(2, 0, 0, 2, 0, 0);
+  const margin = marginInput.valueAsNumber;
+  const scale = 2;
+  const width = canvas.width / scale;
+  const height = canvas.height / scale;
+  const artworkScale = width * (0.5 - margin / 100) / circleRadius;
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
   ctx.fillStyle = backgroundColor.value;
-  ctx.fillRect(0, 0, canvas.width / 2, canvas.height / 2);
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.translate(width / 2, height / 2);
+  ctx.scale(artworkScale, artworkScale);
+  ctx.save();
+  ctx.translate(-circleCenter, -circleCenter);
   drawDisc();
   drawMainText(rotation);
+  ctx.restore();
+
+  // Use the original stamp layout within the scaled artwork.
+  ctx.translate(-width / 2, -450 / 2);
   drawStamp();
 
+  const marginText = margin + "%";
+  byId("margin-value").value = marginText;
+  marginInput.setAttribute("aria-valuetext", marginText);
   byId("angle").value = rotation + "°";
   swatches.forEach(({ button, color }) => button.setAttribute("aria-pressed", backgroundColor.value === color));
   const title = [byId("top-text").value, byId("latin-text").value, byId("bottom-text").value].filter(Boolean);
@@ -935,6 +962,10 @@ function render() {
 }
 
 [circleColor, backgroundColor, latinColor].forEach(connectColorInputs);
+marginInput.addEventListener("input", () => {
+  status.textContent = "";
+  render();
+});
 editor.addEventListener("submit", event => event.preventDefault());
 editor.addEventListener("input", event => {
   const input = event.target;
