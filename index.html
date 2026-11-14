@@ -24,9 +24,10 @@ a {
   padding: 1rem 1.125rem;
   background: #fff;
   color: #215e53;
-  font-weight: 700;
-  text-underline-offset: .2em;
+  text-decoration: none;
 }
+.tool-name { font-weight: 700; text-decoration: underline; text-underline-offset: .2em; }
+.tool-description { display: block; margin-top: .375rem; color: #525a54; font-size: .875rem; line-height: 1.65; }
 a:hover { border-color: #215e53; }
 a:focus-visible { outline: 2px solid #215e53; outline-offset: 3px; }
 </style>
@@ -34,7 +35,13 @@ a:focus-visible { outline: 2px solid #215e53; outline-offset: 3px; }
 <body>
 <main>
   <h1>ツール</h1>
-  <a href="./marumoji/index.html">まる文字ロゴメーカー <span aria-hidden="true">→</span></a>
+  <a href="./marumoji/index.html" aria-labelledby="marumoji-name" aria-describedby="marumoji-description">
+    <span>
+      <span class="tool-name" id="marumoji-name">まる文字ロゴメーカー</span>
+      <span class="tool-description" id="marumoji-description">「みなジェネ」をもとにした、Flashなしで使える非公式版です。文字や色、余白、飾り印を調整し、丸いロゴを正方形のPNGで保存できます。</span>
+    </span>
+    <span aria-hidden="true">→</span>
+  </a>
 </main>
 </body>
 </html>
